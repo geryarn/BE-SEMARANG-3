@@ -1,64 +1,68 @@
-const express = require('express'); 
-const app = express(); 
-const port = 3000; 
-const db = require('./db/index')
-const Feedback = db.feedback
-const bodyParser = require('body-parser')
-const cors = require("cors")
+const express = require("express");
+const app = express();
+const port = 3000;
+const db = require("./db/index");
+const Contact = db.contact;
+const cors = require("cors");
 
-// Middleware 
-app.use(cors())
+// Middleware
 app.use(express.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+app.use(express.json());
+app.use(cors());
 
 // Middleware for contact form input validation
-function validateFeedback(req, res, next) {
+function validateContact(req, res, next) {
   const { firstName, lastName, email, phone, message } = req.body;
   if (!firstName || !lastName || !email || !phone || !message) {
-    return res.status(400).json({ error: 'Semua kolom harus diisi.' });
+    return res.status(400).json({ error: "Semua kolom harus diisi." });
   }
   next();
 }
 
 // Endpoint to store feedback (POST request)
-app.post("/proses_feedback", validateFeedback, async (req, res) => {
+app.post("/api/contact", validateContact, async (req, res) => {
   try {
-    const { firstName, lastName , email, phone, message } = req.body;
+    const { firstName, lastName, email, phone, message } = req.body;
     // Save feedback to database using Sequelize model
-    await Feedback.create({ firstName, lastName, email, phone, message });
+    await Contact.create({ firstName, lastName, email, phone, message });
     res.status(201).json({ message: 'Message berhasil dikirim.' });
   } catch (error) {
     res.status(500).json({ error: 'Terjadi kesalahan pada server.' });
   }
 });
 
-app.get('/proses_feedback', async (req, res) => {
+app.get('/proses_contact', async (req, res) => {
   try {
-    const feedback = await Feedback.findAll()
-    res.status(201).json({
+    const contact = await Contact.findAll();
+    res.status(200).json({
       success: true,
       message: "Successful",
-      data: feedback
-    })
+      data: contact
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Unsuccessful"
-    })
+      message: "Unsuccessful",
+      error: error.message
+    });
   }
 });
 
+app.get("/", (req, res) => {
+  res.send("Server Jalan!");
+});
+
 // Database Synchronization
-async function startdb(){
+async function startdb() {
   try {
-    await db.sequelize.sync({ alter: true })
-    console.log("database connected")
+    await db.sequelize.sync({ alter: true });
+    console.log("Database connected");
   } catch (error) {
-    console.log("database not connected")
+    console.log("Database not connected", error);
   }
 }
 
-startdb()
+startdb();
 
 // Start the server and listen on the specified port
 app.listen(port, () => {
